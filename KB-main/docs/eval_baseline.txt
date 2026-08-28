@@ -1,0 +1,76 @@
+﻿
+EKIP PoC Evaluation
+
+============================================================
+TEST 1: Permission Filtering
+============================================================
+  Loading embedding model: sentence-transformers/all-MiniLM-L6-v2 ...
+.\venv\Scripts\python.exe : 
+At C:\Users\mylil\AppData\Local\Temp\ps-script-8fb7976e-26da-4c86-a887-b8830aba9a1b.ps1:98 char:91
++ ... NG='utf-8'; .\venv\Scripts\python.exe scripts\evaluate.py 2>&1 | Out- ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Loading weights:   0%|          | 0/103 [00:00<?, ?it/s]
+Loading weights: 100%|ΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûê| 103/103 [00:00<00:00, 7347.29it/s]
+  PASS: amrutha searching 'What are the salary bands?'
+         Expected to see: 'Compensation Policy' -- Alice has 'hr' role ΓåÆ can see restricted HR docs
+
+  PASS: harshini searching 'What are the salary bands?'
+         Expected NOT to see: 'Compensation Policy' -- Bob is an engineer ΓåÆ cannot see restricted HR docs
+
+  PASS: tanvi searching 'What is the sales commission structure?'
+         Expected to see: 'Sales Playbook' -- Carol has 'sales' role ΓåÆ can see restricted Sales docs
+
+  PASS: harshini searching 'What is the sales commission structure?'
+         Expected NOT to see: 'Sales Playbook' -- Bob is an engineer ΓåÆ cannot see restricted Sales docs
+
+  PASS: bhaskar searching 'What are the salary bands?'
+         Expected to see: 'Compensation Policy' -- Bhaskar has 'admin' role ΓåÆ can see all docs
+
+  Result: 5/5 permission tests passed.
+
+============================================================
+TEST 2: Search Relevance
+============================================================
+  Loading reranker: cross-encoder/ms-marco-MiniLM-L-6-v2 ...
+
+Loading weights:   0%|          | 0/105 [00:00<?, ?it/s]
+Loading weights: 100%|ΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûêΓûê| 105/105 [00:00<00:00, 9264.21it/s]
+  PASS (top-1): 'What is the PTO policy?'
+         Expected: 'Employee Handbook' | Got top-3: ['Employee Handbook', 'Compensation Policy']
+
+  PASS (top-1): 'What caused incident 5023?'
+         Expected: 'Incident Report INC-5023' | Got top-3: ['Incident Report INC-5023', 'Incident Report INC-5023']
+
+  PASS (top-1): 'What are our pricing tiers?'
+         Expected: 'Pricing Tiers' | Got top-3: ['Pricing Tiers', 'Architecture Overview']
+
+  FAIL: 'What is the tech stack?'
+         Expected: 'Architecture Overview' | Got top-3: ['Pricing Tiers', 'Customer Case Study - BigCorp']
+
+  PASS (top-1): 'How do I submit a code review?'
+         Expected: 'Coding Standards' | Got top-3: ['Coding Standards', 'Onboarding Guide']
+
+  Result: 4/5 relevance tests passed.
+
+============================================================
+TEST 3: End-to-End Latency (Search + Rerank)
+============================================================
+  'What is the remote work policy?' -> 7 results in 184 ms
+  'How to request PTO?' -> 7 results in 163 ms
+  'What are our company values?' -> 7 results in 170 ms
+
+  Average latency: 172 ms
+  PASS: Target < 5000 ms
+
+============================================================
+SUMMARY
+============================================================
+  Permission Filtering: PASS
+  Search Relevance:     FAIL
+  Latency:              PASS
+
+Some tests need attention.
+
