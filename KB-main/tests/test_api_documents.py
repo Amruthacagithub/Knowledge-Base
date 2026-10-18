@@ -1,3 +1,7 @@
+import pytest
+
+
+@pytest.mark.integration
 def test_list_documents(client, admin_headers):
     r = client.get("/api/documents", headers=admin_headers)
     assert r.status_code == 200
@@ -6,6 +10,7 @@ def test_list_documents(client, admin_headers):
     assert len(data["documents"]) == data["total"]
 
 
+@pytest.mark.integration
 def test_get_document_content(client, admin_headers):
     listed = client.get("/api/documents", headers=admin_headers).json()
     doc_id = listed["documents"][0]["id"]

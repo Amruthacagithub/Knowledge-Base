@@ -1,3 +1,6 @@
+import pytest
+
+
 def test_upload_forbidden_non_admin(client, engineer_headers, tmp_path):
     f = tmp_path / "note.md"
     f.write_text("# Note\n\nTest upload.", encoding="utf-8")
@@ -15,6 +18,7 @@ def test_upload_forbidden_non_admin(client, engineer_headers, tmp_path):
     assert r.status_code == 403
 
 
+@pytest.mark.integration
 def test_upload_admin(client, admin_headers, tmp_path):
     f = tmp_path / "admin_note.md"
     f.write_text("# Admin Note\n\nUploaded by pytest.", encoding="utf-8")
