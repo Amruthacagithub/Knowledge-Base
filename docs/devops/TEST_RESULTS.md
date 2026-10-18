@@ -14,6 +14,7 @@ This document records the genuine, executed verification checks, test outputs, a
 | 6 | Auth & document access tests | `pytest KB-main/tests/test_api_auth.py KB-main/tests/test_document_access.py` | **7 passed** | Python 3.13.3 / Pytest 8.3.4 | Commit `79d5b44` |
 | 7 | Kubernetes manifest dry-render | `kubectl kustomize k8s/` | **PASSED (Exit 0)** | kubectl v1.32.2 / Kustomize v5.5.0 | `k8s/` production manifests |
 | 8 | CI/CD workflow syntax | Review of `.github/workflows/ci.yml` | **VALID** | GitHub Actions schema | `.github/workflows/ci.yml` |
+| 9 | Backend Docker image build | `docker build -f docker/Dockerfile.backend -t kb-backend:<sha> .` | **NOT RUN** | Docker daemon unavailable | `docker/Dockerfile.backend` (fixed) |
 
 ## 2. Detailed Execution Logs & Evidence
 
@@ -147,7 +148,54 @@ Exit Code: 0. Rendered workloads:
 - Service: `frontend-svc` (NodePort :80 -> :30080)
 - NetworkPolicy: `allow-frontend-ingress`, `backend-isolation-policy`, `datastore-isolation-policy`
 
-## 3. End-to-End User Journey Verification Trace
+## 3. Container Build Fix: Whoosh `indexdir/` is gitignored
+
+### 3.1 Root cause
+
+The GitHub Actions "Multi-Stage Container Build & Scan" job failed at "Build Backend Container Image" because:
+
+```text
+COPY --chown=appuser:appgroup KB-main/indexdir ./indexdir
+```
+
+`KB-main/indexdir/` is **gitignored** (`KB-main/.gitignore:32: indexdir/`). It is a generated artifact produced by the Whoosh BM25 indexer at runtime, so it is absent from a clean Git checkout — including the GitHub Actions checkout. The `COPY` therefore failed because `/KB-main/indexdir` did not exist in the build context.
+
+### 3.2 How the index actually works (verified in source)
+
+`KB-main/backend/services/bm25_index.py`:
+- `ensure_index_dir()` → `BM25_INDEX_DIR.mkdir(parents=True, exist_ok=True)` — creates the directory at runtime if missing.
+- `get_bm25_index()` → opens the existing index, or `create_bm25_index()` if `exists_in()` is false.
+- `index_chunks()` → writes chunks during ingestion (`scripts/ingest.py`, upload API).
+- `keyword_search()` → reads from the index; an empty index simply returns no keyword matches (valid before ingestion).
+
+Conclusion: the Whoosh index is **generated at runtime during ingestion**, not prebuilt data. It must not be copied from the build context.
+
+### 3.3 Fix applied (docker/Dockerfile.backend)
+
+Removed the failing `COPY --chown=appuser:appgroup KB-main/indexdir ./indexdir` line and replaced it with a `RUN` step that creates the directory with correct ownership for the non-root `appuser` (UID 10001):
+
+```dockerfile
+RUN mkdir -p /home/appuser/.cache /app/indexdir && \
+    chown -R appuser:appgroup /home/appuser/.cache /app /app/indexdir
+```
+
+This preserves hybrid-search functionality, RBAC filters, document ingestion, and retrieval behavior unchanged. The index is empty in the image and is populated on first ingestion (or via `scripts/ingest.py` / the upload API).
+
+### 3.4 Compose & Kubernetes compatibility
+
+- `docker-compose.yml`: no `indexdir` volume mount — index is ephemeral in-container, regenerated via ingestion. Consistent with the fix.
+- `k8s/pvc.yaml`: only `postgres-pvc` and `qdrant-pvc` — no `indexdir` PVC. Index is ephemeral across pod restarts; re-ingestion rebuilds it. Documented as a limitation (index lost on container/pod recreation).
+
+### 3.5 Docker build status
+
+The backend Docker image build **could not be executed** in this environment because the Docker Desktop daemon is not reachable (`docker info` fails). The fix is syntactically valid and the Dockerfile is consistent with the runtime index-creation behavior, but the build itself remains unverified until a Docker daemon is available.
+
+Command to run when Docker is available:
+```bash
+docker build -f docker/Dockerfile.backend -t kb-backend:<sha> .
+```
+
+## 4. End-to-End User Journey Verification Trace
 
 | Step | User / System Action | Verification Point | Evidence |
 |---|---|---|---|
@@ -156,7 +204,7 @@ Exit Code: 0. Rendered workloads:
 | 3. Search Request | User queries `"What are the coding standards?"` via `/api/search` with Bearer token. | Hybrid vector + BM25 search, RBAC filtering, reranking, answer with `[1]` citations. | `test_query_router.py`, `test_generator_citations.py` |
 | 4. Observability | Request emits structured JSON log (`request_id`, `path`, `latency_ms`) and increments Prometheus counters. | `/metrics` exposes `knowledge_base_http_requests_total`, `knowledge_base_search_queries_total`. | `backend/observability.py`, `test_api_health.py::test_prometheus_metrics_endpoint` |
 
-## 4. Items Not Run in This Environment (Honest Limitations)
+## 5. Items Not Run in This Environment (Honest Limitations)
 
 The following assignment items could NOT be executed live because the required infrastructure is unavailable in this headless Windows environment. Each lists the exact command a reviewer can run once the prerequisite is met.
 
@@ -169,11 +217,11 @@ The following assignment items could NOT be executed live because the required i
 | E | Container image scan | Trivy + built image | `trivy image kb-backend:v1.0.0` (CI runs this automatically) |
 | F | Live rollback demonstration | Running cluster + a prior release revision | `kubectl rollout undo deployment/backend -n knowledge-base` |
 
-## 5. Known Bug Fixes Applied
+## 6. Known Bug Fixes Applied
 
 - `KB-main/tests/test_api_upload.py`: Added missing `import pytest` (the `@pytest.mark.integration` decorator previously caused a `NameError` and broke test collection).
 
-## 6. Reproduction Commands
+## 7. Reproduction Commands
 
 ```powershell
 # Backend tests

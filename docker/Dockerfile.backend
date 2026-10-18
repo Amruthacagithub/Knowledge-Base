@@ -51,11 +51,14 @@ ENV PATH="/home/appuser/.local/bin:$PATH" \
 COPY --chown=appuser:appgroup KB-main/backend ./backend
 COPY --chown=appuser:appgroup KB-main/documents ./documents
 COPY --chown=appuser:appgroup KB-main/scripts ./scripts
-COPY --chown=appuser:appgroup KB-main/indexdir ./indexdir
 COPY --chown=appuser:appgroup KB-main/pytest.ini .
 
-# Prepare cache directory with correct ownership
-RUN mkdir -p /home/appuser/.cache && chown -R appuser:appgroup /home/appuser/.cache /app
+# Create the Whoosh BM25 index directory with ownership for the non-root appuser.
+# indexdir/ is gitignored (generated at runtime during ingestion), so it must NOT
+# be COPYed from the build context — it is absent from a clean Git checkout.
+# get_bm25_index() / ensure_index_dir() create it at runtime if missing.
+RUN mkdir -p /home/appuser/.cache /app/indexdir && \
+    chown -R appuser:appgroup /home/appuser/.cache /app /app/indexdir
 
 # Switch to unprivileged user
 USER 10001
