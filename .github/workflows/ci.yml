@@ -128,26 +128,13 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Build Backend Container Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/Dockerfile.backend
-          push: false
-          load: true
-          tags: kb-backend:${{ github.sha }}
+        run: |
+          docker build -f docker/Dockerfile.backend -t kb-backend:${{ github.sha }} .
 
       - name: Build Frontend Container Image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/Dockerfile.frontend
-          push: false
-          load: true
-          tags: kb-frontend:${{ github.sha }}
+        run: |
+          docker build -f docker/Dockerfile.frontend -t kb-frontend:${{ github.sha }} .
 
       - name: Scan Backend Image with Trivy
         uses: aquasecurity/trivy-action@d710430a6722f083d3b36b8339ff66b32f22ee55
