@@ -1,0 +1,34 @@
+# ==============================================================================
+# Persistent Volume Claims: Knowledge Base Platform
+# Ensures data persistence across pod restarts and rolling updates.
+# ==============================================================================
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: knowledge-base
+  labels:
+    app.kubernetes.io/name: knowledge-base
+    app.kubernetes.io/component: database-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: qdrant-pvc
+  namespace: knowledge-base
+  labels:
+    app.kubernetes.io/name: knowledge-base
+    app.kubernetes.io/component: vector-storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi

@@ -1,0 +1,112 @@
+# ==============================================================================
+# Complete 4-Tier Local Orchestration: Knowledge Base Platform
+# Services:
+#   - frontend: React SPA served via NGINX (Port 80)
+#   - backend:  FastAPI RAG Inference API (Port 8000)
+#   - postgres: Relational DB (Port 5432)
+#   - qdrant:   Vector Store (Port 6333)
+# ==============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: kb-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ekip}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ekip_dev_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-ekip}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ekip}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - kb-network
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: kb-qdrant
+    restart: unless-stopped
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "cat /proc/net/tcp | grep -q 18BD || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - kb-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: kb-backend
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-ekip}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ekip_dev_2026}
+      POSTGRES_DB: ${POSTGRES_DB:-ekip}
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6333
+      QDRANT_COLLECTION: ${QDRANT_COLLECTION:-enterprise_docs}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      JWT_SECRET: ${JWT_SECRET:-ekip-dev-secret-change-in-prod}
+      CORS_ORIGINS: "http://localhost,http://localhost:80,http://localhost:5173,http://localhost:3000,http://127.0.0.1:80"
+      ENVIRONMENT: local-docker
+      APP_VERSION: 1.0.0
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/live"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
+    networks:
+      - kb-network
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: kb-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:80/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - kb-network
+
+volumes:
+  postgres_data:
+  qdrant_data:
+
+networks:
+  kb-network:
+    driver: bridge

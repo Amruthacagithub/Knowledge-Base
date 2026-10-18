@@ -36,8 +36,10 @@ indexdir/
 dist/
 build/
 
-# Logs
-*.log
+# Testing & Temporary DBs
+*.db
+*.sqlite
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Jupyter
-.ipynb_checkpoints/

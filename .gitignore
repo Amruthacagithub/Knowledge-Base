@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.pytest_cache/
+.coverage
+htmlcov/
+*.log
+
+# Databases & local state
+*.db
+*.sqlite
+postgres_data/
+qdrant_data/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Node.js
+**/node_modules/
+**/dist/
+**/build/
+.npm/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
