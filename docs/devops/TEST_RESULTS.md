@@ -123,3 +123,4 @@ Rendered Workloads:
 
 1. **Docker Desktop Engine Daemon:** In this headless Windows environment, starting the Windows Service `com.docker.service` requires elevated Administrator UAC approval. The container images and Dockerfiles have been created and validated against strict multi-stage standards, ready to run directly via `docker compose up` once the daemon is started.
 2. **Gemini API Live Key:** Online LLM question synthesis requires an active Google AI Studio Gemini API key. If no key is configured in the environment, the backend gracefully falls back to structured extractive source citations without throwing unhandled 500 errors.
+

@@ -18,3 +18,4 @@ labels:
   - pairs:
       app.kubernetes.io/name: knowledge-base
       app.kubernetes.io/managed-by: kustomize
+

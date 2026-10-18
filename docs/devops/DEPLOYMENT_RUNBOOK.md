@@ -211,3 +211,4 @@ kubectl apply -k k8s/
 | **503 Service Unavailable on Search** | Datastore readiness probe failing or Postgres offline. | `kubectl get pods -n knowledge-base`<br>`curl http://<svc-ip>:8000/api/health/ready` | Check `postgres` pod status; inspect postgres container logs: `kubectl logs deployment/postgres -n knowledge-base`. |
 | **OOMKilled on Backend** | ML inference exceeded 2Gi memory limit during peak query. | `kubectl describe pod <pod-name> -n knowledge-base \| grep -i oom` | Increase `resources.limits.memory` in `k8s/backend-deployment.yaml` from 2Gi to 3Gi. |
 | **ImagePullBackOff** | Image name or tag does not exist locally or in registry. | `kubectl describe pod <pod-name> -n knowledge-base` | Run `minikube image load <image>` or verify image tag spelling in deployment YAML. |
+

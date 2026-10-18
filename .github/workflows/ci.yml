@@ -174,3 +174,4 @@ jobs:
         run: |
           kubectl kustomize k8s/ > rendered_manifests.yaml
           cat rendered_manifests.yaml | grep "kind: Deployment"
+

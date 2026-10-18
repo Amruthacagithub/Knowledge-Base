@@ -67,3 +67,4 @@ k8s-rollback:
 	@echo "Rolling back backend deployment..."
 	kubectl rollout undo deployment/backend -n knowledge-base
 	kubectl rollout status deployment/backend -n knowledge-base
+

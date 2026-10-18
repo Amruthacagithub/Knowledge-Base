@@ -133,3 +133,4 @@ kubectl logs -l app=backend -n knowledge-base -f --tail=50
 # 4. Filter access logs for errors (HTTP status >= 400)
 kubectl logs -l app=backend -n knowledge-base --tail=200 | jq 'select(.status >= 400)'
 ```
+

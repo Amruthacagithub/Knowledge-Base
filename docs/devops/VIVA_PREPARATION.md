@@ -107,3 +107,4 @@ When an updated image is applied:
 **Answer:**
 "1. **Gemini API Egress:** The AI synthesis feature depends on outbound internet access to Google AI Studio. In an air-gapped corporate network, this would require hosting a local open-source LLM like Llama 3 via Ollama or vLLM.
 2. **Local Machine Docker Daemon:** In this headless Windows environment, starting Docker Desktop requires elevated administrative privileges, but the containerization, Kubernetes manifests, and CI/CD pipelines have been fully authored and verified via unit tests and dry-run syntax checks."
+

@@ -117,3 +117,4 @@ This checklist guides the live demonstration of the Knowledge Base DevOps projec
   `docker compose up -d` to demonstrate the exact same multi-tier containers running in Docker Compose.
 - If the Gemini API hits a rate limit, the backend automatically transitions to fallback citation extraction mode without crashing.
 - Pre-recorded CLI execution evidence is documented in [`docs/devops/TEST_RESULTS.md`](./TEST_RESULTS.md).
+

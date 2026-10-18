@@ -5,3 +5,4 @@ metadata:
   labels:
     app.kubernetes.io/name: knowledge-base
     app.kubernetes.io/part-of: ekip-platform
+

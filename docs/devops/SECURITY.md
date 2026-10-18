@@ -100,3 +100,4 @@ The GitHub Actions pipeline ([`.github/workflows/ci.yml`](../../.github/workflow
 
 - **Local Mock Secrets:** In local developer mode without an external secret vault, Kubernetes Secrets use standard base64 encoding. In enterprise production, integration with HashiCorp Vault or AWS Secrets Manager via the Kubernetes External Secrets Operator (ESO) is recommended.
 - **External Gemini API Call:** Answer synthesis requires outbound HTTPS traffic to Google AI Studio. If egress network filtering is active in strict air-gapped environments, a self-hosted local LLM (e.g. Ollama / vLLM) would be required.
+

@@ -38,3 +38,4 @@ scrape_configs:
         target_label: __address__
       - action: labelmap
         regex: __meta_kubernetes_pod_label_(.+)
+
