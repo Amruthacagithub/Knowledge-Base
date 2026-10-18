@@ -10,6 +10,7 @@ from backend.services.retriever import hybrid_search
 from backend.services.reranker import rerank
 from backend.services.generator import generate_answer
 from backend.services.audit import log_search
+from backend.observability import record_search_query
 
 router = APIRouter(prefix="/api", tags=["search"])
 
@@ -60,6 +61,7 @@ def search(req: SearchRequest, authorization: str = Header(...)):
         user_ctx=user_ctx,
         department_filter=req.department_filter,
     )
+    record_search_query(query_type)
 
     if not candidates:
         elapsed_ms = int((time.time() - start) * 1000)

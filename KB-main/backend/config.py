@@ -43,6 +43,11 @@ JWT_ALGORITHM = "HS256"
 _default_cors = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", _default_cors)
 
+# Application metadata & environment
+APP_VERSION = os.getenv("APP_VERSION", "1.0.0")
+COMMIT_SHA = os.getenv("COMMIT_SHA", "93dcb834893ab486bdae244ea2a6a3e88a7b30ba")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
 # Paths
 DOCUMENTS_DIR = PROJECT_ROOT / "documents"
 BM25_INDEX_DIR = PROJECT_ROOT / "indexdir"

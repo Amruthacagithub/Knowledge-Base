@@ -3,10 +3,12 @@ EKIP — Enterprise Knowledge Intelligence Platform
 
 FastAPI application entry point.
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
-from backend.config import CORS_ORIGINS
+from backend.config import CORS_ORIGINS, APP_VERSION, COMMIT_SHA, ENVIRONMENT
+from backend.observability import ObservabilityMiddleware, get_metrics_response, update_component_health
 from backend.routers.auth_router import router as auth_router
 from backend.routers.search_router import router as search_router
 from backend.routers.documents_router import router as documents_router
@@ -14,8 +16,11 @@ from backend.routers.documents_router import router as documents_router
 app = FastAPI(
     title="Knowledge Base",
     description="Internal document search with AI-powered answers and role-based access.",
-    version="0.2.0",
+    version=APP_VERSION,
 )
+
+# Observability middleware (request correlation ID, JSON access logs, Prometheus metrics)
+app.add_middleware(ObservabilityMiddleware)
 
 # CORS — localhost in dev; set CORS_ORIGINS in production (include your Vercel URL)
 _cors_origins = [o.strip() for o in CORS_ORIGINS.split(",") if o.strip()]
@@ -56,14 +61,69 @@ def _check_qdrant() -> bool:
         return False
 
 
-@app.get("/api/health")
-def health_check():
-    """Health check with dependency status."""
+@app.get("/metrics", tags=["observability"])
+def metrics():
+    """Prometheus metrics scrape endpoint."""
+    return get_metrics_response()
+
+
+@app.get("/api/version", tags=["system"])
+def version_info():
+    """Build and release version metadata."""
+    return {
+        "service": "knowledge-base",
+        "version": APP_VERSION,
+        "commit_sha": COMMIT_SHA,
+        "environment": ENVIRONMENT,
+        "status": "healthy",
+    }
+
+
+@app.get("/api/health/live", tags=["health"])
+def liveness_probe():
+    """Kubernetes liveness probe — checks that the process is running and event loop is responsive."""
+    return {"status": "ok", "service": "knowledge-base"}
+
+
+@app.get("/api/health/ready", tags=["health"])
+def readiness_probe():
+    """Kubernetes readiness probe — verifies critical datastore dependencies before routing traffic."""
     pg_ok = _check_postgres()
     qd_ok = _check_qdrant()
-    status = "ok" if pg_ok and qd_ok else "degraded"
+    update_component_health("postgres", pg_ok)
+    update_component_health("qdrant", qd_ok)
+
+    if pg_ok and qd_ok:
+        return {
+            "status": "ready",
+            "components": {"postgres": "up", "qdrant": "up"},
+        }
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={
+            "status": "not_ready",
+            "components": {
+                "postgres": "up" if pg_ok else "down",
+                "qdrant": "up" if qd_ok else "down",
+            },
+        },
+    )
+
+
+@app.get("/api/health/startup", tags=["health"])
+def startup_probe():
+    """Kubernetes startup probe — verifies initial application initialization."""
+    return {"status": "started", "service": "knowledge-base"}
+
+
+@app.get("/api/health", tags=["health"])
+def health_check():
+    """Backward-compatible health check with dependency status."""
+    pg_ok = _check_postgres()
+    qd_ok = _check_qdrant()
+    status_str = "ok" if pg_ok and qd_ok else "degraded"
     return {
-        "status": status,
+        "status": status_str,
         "service": "knowledge-base",
         "components": {
             "postgres": "up" if pg_ok else "down",

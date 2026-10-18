@@ -35,3 +35,7 @@ fpdf2==2.8.3
 pytest==8.3.4
 pytest-cov==6.0.0
 httpx==0.28.1
+
+# Observability
+prometheus-client==0.26.0
+
